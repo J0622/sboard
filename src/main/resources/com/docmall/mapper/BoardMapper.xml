@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.docmall.mapper.BoardMapper">
+	<insert id="register"
+		parameterType="com.docmall.domain.SBoardVO">
+		INSERT INTO
+		SBOARD(IDX,SUBJECT,CONTENT,AUTHOR )
+		VALUES(SEQ_SBOARD.NEXTVAL,#{subject},
+		#{content},#{author})
+	</insert>
+
+	<select id="getList" resultType="com.docmall.domain.SBoardVO">
+		SELECT
+		IDX,SUBJECT,CONTENT,AUTHOR,CREATEDATE,EDITDATE FROM SBOARD ORDER BY
+		IDX
+		DESC
+	</select>
+
+	<sql id="criteria">
+		<trim prefix="(" suffix=") AND" prefixOverrides="OR">
+			<foreach collection="typeArr" item="type">
+				<trim prefix="OR">
+					<choose>
+						<when test="type == 'T'.toString()">
+							subject like '%' || #{keyword} || '%'
+						</when>
+						<when test="type == 'W'.toString()">
+							author like '%' || #{keyword} || '%'
+						</when>
+						<when test="type == 'C'.toString()">
+							content like '%' || #{keyword} || '%'
+						</when>
+					</choose>
+				</trim>
+			</foreach>
+		</trim>
+	</sql>
+
+	<select id="getListWithPaging"
+		resultType="com.docmall.domain.SBoardVO"
+		parameterType="com.docmall.domain.Criteria">
+		<![CDATA[
+		select
+		idx, subject, content, author, createdate, editdate , readcount
+		from
+		(
+		select /*+INDEX_DESC(sboard pk_sboard) */
+			rownum rn, idx, subject,
+			content, author, createdate, editdate , readcount
+		from 
+			sboard where
+			]]>
+
+		<include refid="criteria" />
+			
+		<![CDATA[	
+			
+			rownum <= #{pageNum} * #{amount}
+		)
+			where rn > (#{pageNum} -1) * #{amount} 
+		]]>
+	</select>
+
+	<select id="getTotalCount" resultType="int">
+		SELECT COUNT(*) FROM SBOARD where
+		<include refid="criteria"></include>
+		idx > 0
+	</select>
+
+	<select id="get" resultType="com.docmall.domain.SBoardVO"
+		parameterType="Long">
+		SELECT IDX,SUBJECT,CONTENT,AUTHOR,CREATEDATE,EDITDATE
+		FROM
+		SBOARD WHERE IDX = #{idx}
+	</select>
+
+	<update id="modify" parameterType="com.docmall.domain.SBoardVO">
+		UPDATE SBOARD SET SUBJECT=
+		#{subject}, CONTENT= #{content}, EDITDATE = SYSDATE WHERE IDX =
+		#{idx}
+	</update>
+
+	<update id="readCount" parameterType="Long">
+		UPDATE SBOARD SET readcount
+		= readcount + 1 WHERE IDX = #{idx}
+	</update>
+
+	<delete id="delete" parameterType="Long">
+		DELETE FROM SBOARD WHERE IDX =
+		#{idx}
+	</delete>
+
+</mapper>
